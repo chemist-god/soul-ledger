@@ -93,7 +93,7 @@ function Card({
 
   return (
     <div
-      className={`bg-[var(--app-card-bg)] backdrop-blur-md rounded-xl shadow-lg border border-[var(--app-card-border)] overflow-hidden transition-all hover:shadow-xl ${className} ${onClick ? "cursor-pointer" : ""}`}
+      className={`bg-[var(--app-card-bg)] glass-card rounded-xl border border-[var(--app-card-border)] overflow-hidden transition-all hover:shadow-xl hover:-translate-y-[1px] ${className} ${onClick ? "cursor-pointer" : ""}`}
       onClick={onClick}
       onKeyDown={onClick ? handleKeyDown : undefined}
       tabIndex={onClick ? 0 : undefined}

@@ -16,6 +16,8 @@
   --app-gray-dark: #e0e0e0;
   --app-card-bg: rgba(255, 255, 255, 0.4);
   --app-card-border: rgba(0, 0, 0, 0.1);
+  --app-card-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  --app-glass-blur: 10px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -94,7 +96,9 @@
 
 body {
   color: var(--app-foreground);
-  background: var(--app-background);
+  background: radial-gradient(1200px 600px at 10% -10%, rgba(0, 82, 255, 0.12), transparent 60%),
+    radial-gradient(800px 400px at 90% 10%, rgba(0, 82, 255, 0.08), transparent 60%),
+    linear-gradient(180deg, var(--app-background) 0%, var(--app-gray) 100%);
   font-family: var(--font-geist-sans), sans-serif;
   font-optical-sizing: auto;
   font-weight: 400;
@@ -119,6 +123,7 @@ body {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -128,10 +133,18 @@ body {
   0% {
     opacity: 1;
   }
+
   50% {
     opacity: 1;
   }
+
   100% {
     opacity: 0;
   }
+}
+
+/* Subtle glass card utility */
+.glass-card {
+  backdrop-filter: blur(var(--app-glass-blur));
+  box-shadow: var(--app-card-shadow);
 }
