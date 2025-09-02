@@ -160,17 +160,7 @@ type HomeProps = {
 export function Home({ setActiveTab }: HomeProps) {
   return (
     <div className="space-y-6 animate-fade-in">
-      <Card title="My First Mini App">
-        <p className="text-[var(--app-foreground-muted)] mb-4">
-          This is a minimalistic Mini App built with OnchainKit components.
-        </p>
-        <Button
-          onClick={() => setActiveTab("features")}
-          icon={<Icon name="arrow-right" size="sm" />}
-        >
-          Explore Features
-        </Button>
-      </Card>
+      <DashboardCard onExplore={() => setActiveTab("features")} />
 
       <TodoList />
 
@@ -525,6 +515,7 @@ function ClaimCard() {
 function FocusCard() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [focusId, setFocusId] = useState<string | null>(null);
+  const [suggestionId, setSuggestionId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     const [todoRes, focusRes] = await Promise.all([
@@ -535,6 +526,7 @@ function FocusCard() {
     const focusJson = await focusRes.json();
     setTodos(todoJson.todos ?? []);
     setFocusId(focusJson.focus?.todoId ?? null);
+    setSuggestionId(focusJson.suggestion?.todoId ?? null);
   }, []);
 
   useEffect(() => { refresh(); }, [refresh]);
@@ -553,6 +545,12 @@ function FocusCard() {
   return (
     <div className="p-3 border rounded-lg border-[var(--app-card-border)]">
       <div className="text-sm font-medium mb-2">One Big Thing (today)</div>
+      {suggestionId && (
+        <div className="mb-3 text-xs text-[var(--app-foreground-muted)]">
+          Suggested focus: <span className="font-medium text-[var(--app-foreground)]">{todos.find((t) => t.id === suggestionId)?.text}</span>
+          <Button className="ml-2" size="sm" variant="secondary" onClick={() => setFocus(suggestionId!)}>Use Suggestion</Button>
+        </div>
+      )}
       <div className="space-y-2">
         {todos.map((t) => (
           <div key={t.id} className="flex items-center justify-between">
@@ -564,5 +562,77 @@ function FocusCard() {
         ))}
       </div>
     </div>
+  );
+}
+
+function DashboardCard({ onExplore }: { onExplore: () => void }) {
+  const [streak, setStreak] = useState(0);
+  const [tasksDone, setTasksDone] = useState(0);
+  const [tasksTotal, setTasksTotal] = useState(0);
+  const [recentNotes, setRecentNotes] = useState<string[]>([]);
+  const [highlight, setHighlight] = useState<string | null>(null);
+
+  const refresh = useCallback(async () => {
+    const [claimRes, todoRes, focusRes] = await Promise.all([
+      fetch("/api/claim", { headers: { "x-user-id": "demo-user" } }),
+      fetch("/api/todos", { headers: { "x-user-id": "demo-user" } }),
+      fetch("/api/focus", { headers: { "x-user-id": "demo-user" } }),
+    ]);
+    const claim = await claimRes.json();
+    const todos = await todoRes.json();
+    const focus = await focusRes.json();
+    setStreak(claim?.state?.streak ?? 0);
+    const list: { id: string; text: string; completed: boolean }[] = todos?.todos ?? [];
+    setTasksTotal(list.length);
+    setTasksDone(list.filter((t) => t.completed).length);
+    const suggestedId: string | null = focus?.focus?.todoId ?? focus?.suggestion?.todoId ?? null;
+    setHighlight(suggestedId ? list.find((t) => t.id === suggestedId)?.text ?? null : null);
+    setRecentNotes(["God spoke to me about...", "Lyrics for new worship song", "Conference takeaways - Acts"]);
+  }, []);
+
+  useEffect(() => { refresh(); }, [refresh]);
+
+  return (
+    <Card>
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="text-lg font-semibold">SoulLedger</div>
+          <Button variant="ghost" size="sm" onClick={onExplore}>
+            Explore
+          </Button>
+        </div>
+        <div className="text-sm text-[var(--app-foreground-muted)]">
+          You&apos;re on a <span className="font-medium text-[var(--app-foreground)]">{streak}-day streak</span> 🎯
+        </div>
+        <div className="grid grid-cols-3 gap-2 text-center">
+          <div className="p-2 rounded-lg bg-[var(--app-card-bg)] border border-[var(--app-card-border)]">
+            <div className="text-xs text-[var(--app-foreground-muted)]">Tasks</div>
+            <div className="text-sm font-medium">{tasksDone} / {tasksTotal}</div>
+          </div>
+          <div className="p-2 rounded-lg bg-[var(--app-card-bg)] border border-[var(--app-card-border)]">
+            <div className="text-xs text-[var(--app-foreground-muted)]">Reflections</div>
+            <div className="text-sm font-medium">1</div>
+          </div>
+          <div className="p-2 rounded-lg bg-[var(--app-card-bg)] border border-[var(--app-card-border)]">
+            <div className="text-xs text-[var(--app-foreground-muted)]">Songs</div>
+            <div className="text-sm font-medium">1</div>
+          </div>
+        </div>
+        {highlight && (
+          <div className="p-3 rounded-lg bg-[var(--app-accent-light)] border border-[var(--app-card-border)]">
+            <div className="text-xs text-[var(--app-foreground-muted)] mb-1">High-Impact Task (80/20)</div>
+            <div className="text-sm font-medium">{highlight}</div>
+          </div>
+        )}
+        <div>
+          <div className="text-sm font-medium mb-2">Recent Notes</div>
+          <ul className="text-sm text-[var(--app-foreground-muted)] space-y-1">
+            {recentNotes.map((n, i) => (
+              <li key={i}>» {n}</li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </Card>
   );
 }
