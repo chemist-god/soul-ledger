@@ -16,6 +16,7 @@ import {
   TransactionStatus,
 } from "@coinbase/onchainkit/transaction";
 import { useNotification } from "@coinbase/onchainkit/minikit";
+import { createChallenge as createStakingChallenge, claimUnlocked as claimStake, finalizeChallenge } from "@/lib/stake";
 
 type ButtonProps = {
   children: ReactNode;
@@ -329,6 +330,7 @@ function TodoList() {
       <div className="space-y-4">
         <ClaimCard />
         <FocusCard />
+        <StakeCard />
         <div className="flex items-center space-x-2">
           <input
             type="text"
@@ -564,6 +566,57 @@ function FocusCard() {
         ))}
       </div>
     </div>
+  );
+}
+
+function StakeCard() {
+  const [amount, setAmount] = useState("20");
+  const [days, setDays] = useState(7);
+  const [beneficiary, setBeneficiary] = useState("0x5B9AFe590174Cddd1C99374DEC490A87f4D04776");
+  const [startDate, setStartDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  const [challengeId, setChallengeId] = useState<bigint | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const create = async () => {
+    try {
+      setBusy(true);
+      const date = new Date(startDate + "T00:00:00Z");
+      await createStakingChallenge({ beneficiary: beneficiary as any, amount, startDate: date, days });
+      // In wagmi v2, writeContract returns tx hash; for simplicity, ask user to view in explorer or store id later.
+      // We'll simulate an id for UI continuity in MVP.
+      setChallengeId(BigInt(Date.now()));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const claim = async () => {
+    if (!challengeId) return;
+    await claimStake(challengeId);
+  };
+
+  const finalize = async () => {
+    if (!challengeId) return;
+    await finalizeChallenge(challengeId);
+  };
+
+  return (
+    <Card title="Self-Stake Challenge">
+      <div className="grid gap-2 md:grid-cols-2">
+        <input className="px-3 py-2 bg-[var(--app-card-bg)] border border-[var(--app-card-border)] rounded-lg" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Amount (USDC)" />
+        <input className="px-3 py-2 bg-[var(--app-card-bg)] border border-[var(--app-card-border)] rounded-lg" type="number" value={days} onChange={(e) => setDays(parseInt(e.target.value || "1"))} placeholder="Days" />
+        <input className="px-3 py-2 bg-[var(--app-card-bg)] border border-[var(--app-card-border)] rounded-lg" value={beneficiary} onChange={(e) => setBeneficiary(e.target.value)} placeholder="Beneficiary address" />
+        <input className="px-3 py-2 bg-[var(--app-card-bg)] border border-[var(--app-card-border)] rounded-lg" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+      </div>
+      <div className="mt-2 flex gap-2">
+        <Button onClick={create} disabled={busy}>Create Challenge</Button>
+        <Button onClick={claim} variant="secondary" disabled={!challengeId}>Claim</Button>
+        <Button onClick={finalize} variant="outline" disabled={!challengeId}>Finalize</Button>
+      </div>
+      {!challengeId && (
+        <div className="text-xs text-[var(--app-foreground-muted)] mt-2">Note: For MVP, challenge ID is simulated client-side after creation.</div>
+      )}
+    </Card>
   );
 }
 
