@@ -16,6 +16,7 @@ import {
   TransactionStatus,
 } from "@coinbase/onchainkit/transaction";
 import { useNotification } from "@coinbase/onchainkit/minikit";
+import { createChallenge as createStakingChallenge, claimUnlocked as claimStake, finalizeChallenge, getChallengeData, formatUSDC } from "@/lib/stake";
 
 type ButtonProps = {
   children: ReactNode;
@@ -329,6 +330,7 @@ function TodoList() {
       <div className="space-y-4">
         <ClaimCard />
         <FocusCard />
+        <StakeCard />
         <div className="flex items-center space-x-2">
           <input
             type="text"
@@ -564,6 +566,216 @@ function FocusCard() {
         ))}
       </div>
     </div>
+  );
+}
+
+function StakeCard() {
+  const { address, isConnected } = useAccount();
+  const [amount, setAmount] = useState("20");
+  const [days, setDays] = useState(7);
+  const [beneficiary, setBeneficiary] = useState("0x5B9AFe590174Cddd1C99374DEC490A87f4D04776");
+  const [startDate, setStartDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  const [challengeId, setChallengeId] = useState<bigint | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [challengeData, setChallengeData] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const refreshChallengeData = useCallback(async () => {
+    if (!challengeId) return;
+    try {
+      const data = await getChallengeData(challengeId);
+      setChallengeData(data);
+    } catch (e) {
+      console.error("Failed to fetch challenge data:", e);
+    }
+  }, [challengeId]);
+
+  useEffect(() => {
+    refreshChallengeData();
+  }, [refreshChallengeData]);
+
+  const create = async () => {
+    if (!isConnected) {
+      setError("Please connect your wallet first");
+      return;
+    }
+    try {
+      setBusy(true);
+      setError(null);
+      const date = new Date(startDate + "T00:00:00Z");
+      const txHash = await createStakingChallenge({
+        beneficiary: beneficiary as any,
+        amount,
+        startDate: date,
+        days
+      });
+      // For MVP, we'll use a simulated ID based on timestamp
+      // In production, you'd parse the tx receipt to get the actual challenge ID
+      setChallengeId(BigInt(Date.now()));
+      setError(null);
+    } catch (e: any) {
+      setError(e.message || "Failed to create challenge");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const claim = async () => {
+    if (!challengeId || !isConnected) return;
+    try {
+      setBusy(true);
+      setError(null);
+      await claimStake(challengeId);
+      await refreshChallengeData();
+    } catch (e: any) {
+      setError(e.message || "Failed to claim");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const finalize = async () => {
+    if (!challengeId || !isConnected) return;
+    try {
+      setBusy(true);
+      setError(null);
+      await finalizeChallenge(challengeId);
+      await refreshChallengeData();
+    } catch (e: any) {
+      setError(e.message || "Failed to finalize");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const canFinalize = challengeData &&
+    new Date(Number(challengeData.startTime) * 1000 + Number(challengeData.durationDays) * 24 * 60 * 60 * 1000) <= new Date() &&
+    !challengeData.finalized;
+
+  const hasClaimable = challengeData && challengeData.released > 0;
+
+  if (!isConnected) {
+    return (
+      <Card title="Self-Stake Challenge">
+        <div className="text-center py-8">
+          <div className="text-4xl mb-4">🔐</div>
+          <div className="text-lg font-medium mb-2">Connect Your Wallet</div>
+          <div className="text-sm text-[var(--app-foreground-muted)] mb-4">
+            Connect your wallet to create self-stake challenges and bet on yourself
+          </div>
+          <div className="text-xs text-[var(--app-foreground-muted)]">
+            Lock USDC for N days, unlock portions as you complete daily tasks
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  return (
+    <Card title="Self-Stake Challenge">
+      <div className="space-y-4">
+        {error && (
+          <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+            {error}
+          </div>
+        )}
+
+        {!challengeId ? (
+          <div className="space-y-3">
+            <div className="text-sm text-[var(--app-foreground-muted)] mb-3">
+              Lock your USDC and unlock portions as you complete daily tasks. Missed days go to your chosen beneficiary.
+            </div>
+            <div className="grid gap-3 md:grid-cols-2">
+              <div>
+                <label className="block text-xs text-[var(--app-foreground-muted)] mb-1">Amount (USDC)</label>
+                <input
+                  className="w-full px-3 py-2 bg-[var(--app-card-bg)] border border-[var(--app-card-border)] rounded-lg text-[var(--app-foreground)]"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="20"
+                  type="number"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-[var(--app-foreground-muted)] mb-1">Duration (Days)</label>
+                <input
+                  className="w-full px-3 py-2 bg-[var(--app-card-bg)] border border-[var(--app-card-border)] rounded-lg text-[var(--app-foreground)]"
+                  type="number"
+                  value={days}
+                  onChange={(e) => setDays(parseInt(e.target.value || "1"))}
+                  placeholder="7"
+                  min="1"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-[var(--app-foreground-muted)] mb-1">Beneficiary Address</label>
+                <input
+                  className="w-full px-3 py-2 bg-[var(--app-card-bg)] border border-[var(--app-card-border)] rounded-lg text-[var(--app-foreground)]"
+                  value={beneficiary}
+                  onChange={(e) => setBeneficiary(e.target.value)}
+                  placeholder="0x..."
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-[var(--app-foreground-muted)] mb-1">Start Date</label>
+                <input
+                  className="w-full px-3 py-2 bg-[var(--app-card-bg)] border border-[var(--app-card-border)] rounded-lg text-[var(--app-foreground)]"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                />
+              </div>
+            </div>
+            <Button
+              onClick={create}
+              disabled={busy || !amount || !days || !beneficiary}
+              className="w-full"
+            >
+              {busy ? "Creating..." : `Create Challenge (${amount} USDC for ${days} days)`}
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="p-4 bg-[var(--app-accent-light)] border border-[var(--app-card-border)] rounded-lg">
+              <div className="text-sm font-medium mb-2">Active Challenge #{challengeId.toString()}</div>
+              {challengeData && (
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>Principal: {formatUSDC(challengeData.principal)} USDC</div>
+                  <div>Released: {formatUSDC(challengeData.released)} USDC</div>
+                  <div>Duration: {challengeData.durationDays} days</div>
+                  <div>Daily Slice: {formatUSDC(challengeData.dailySlice)} USDC</div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                onClick={claim}
+                variant="secondary"
+                disabled={!hasClaimable || busy}
+                className="flex-1"
+              >
+                {busy ? "Claiming..." : `Claim ${challengeData ? formatUSDC(challengeData.released) : "0"} USDC`}
+              </Button>
+              <Button
+                onClick={finalize}
+                variant="outline"
+                disabled={!canFinalize || busy}
+                className="flex-1"
+              >
+                {busy ? "Finalizing..." : "Finalize"}
+              </Button>
+            </div>
+
+            <div className="text-xs text-[var(--app-foreground-muted)]">
+              <div>• Complete daily tasks to unlock your USDC</div>
+              <div>• Missed days go to beneficiary: {beneficiary.slice(0, 6)}...{beneficiary.slice(-4)}</div>
+              <div>• Finalize after challenge ends to claim remaining funds</div>
+            </div>
+          </div>
+        )}
+      </div>
+    </Card>
   );
 }
 
