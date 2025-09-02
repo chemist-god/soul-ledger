@@ -1,17 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
+// --- Minimal IERC20 ---
+interface IERC20 {
+    function transferFrom(address from, address to, uint256 amount) external returns (bool);
+    function transfer(address to, uint256 amount) external returns (bool);
+    function balanceOf(address) external view returns (uint256);
+    function allowance(address owner, address spender) external view returns (uint256);
+    function decimals() external view returns (uint8);
+}
+
 /// @title StakeVault - Self-stake motivation vault (USDC-only, linear release)
 /// @notice Lock USDC for N days; each successful day unlocks an equal slice. Missed days accrue penalties to a beneficiary.
 contract StakeVault {
-    // --- Minimal IERC20 ---
-    interface IERC20 {
-        function transferFrom(address from, address to, uint256 amount) external returns (bool);
-        function transfer(address to, uint256 amount) external returns (bool);
-        function balanceOf(address) external view returns (uint256);
-        function allowance(address owner, address spender) external view returns (uint256);
-        function decimals() external view returns (uint8);
-    }
 
     // --- Events ---
     event ChallengeCreated(uint256 indexed challengeId, address indexed owner, address indexed beneficiary, uint256 amount, uint256 startTime, uint256 durationDays);
