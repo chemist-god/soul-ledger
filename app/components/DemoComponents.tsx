@@ -164,6 +164,8 @@ export function Home({ setActiveTab }: HomeProps) {
 
       <TodoList />
 
+      <NotesCard />
+
       <TransactionCard />
     </div>
   );
@@ -631,6 +633,77 @@ function DashboardCard({ onExplore }: { onExplore: () => void }) {
               <li key={i}>» {n}</li>
             ))}
           </ul>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function NotesCard() {
+  const [notes, setNotes] = useState<{ id: string; title: string; content: string; category: string }[]>([]);
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [category, setCategory] = useState("reflection");
+  const [query, setQuery] = useState("");
+
+  const refresh = useCallback(async () => {
+    const res = await fetch(`/api/notes${query ? `?q=${encodeURIComponent(query)}` : ""}`, { headers: { "x-user-id": "demo-user" } });
+    const json = await res.json();
+    setNotes(json.notes ?? []);
+  }, [query]);
+
+  useEffect(() => { refresh(); }, [refresh]);
+
+  const add = useCallback(async () => {
+    if (!title.trim() || !content.trim()) return;
+    await fetch("/api/notes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-user-id": "demo-user" },
+      body: JSON.stringify({ title, content, category }),
+    });
+    setTitle("");
+    setContent("");
+    refresh();
+  }, [title, content, category, refresh]);
+
+  const remove = useCallback(async (id: string) => {
+    await fetch(`/api/notes?id=${id}`, { method: "DELETE", headers: { "x-user-id": "demo-user" } });
+    refresh();
+  }, [refresh]);
+
+  return (
+    <Card title="Notes & Reflections">
+      <div className="space-y-3">
+        <div className="flex gap-2">
+          <input className="flex-1 px-3 py-2 bg-[var(--app-card-bg)] border border-[var(--app-card-border)] rounded-lg text-[var(--app-foreground)] placeholder-[var(--app-foreground-muted)]" placeholder="Search notes..." value={query} onChange={(e) => setQuery(e.target.value)} />
+        </div>
+        <div className="grid gap-2 md:grid-cols-2">
+          <input className="px-3 py-2 bg-[var(--app-card-bg)] border border-[var(--app-card-border)] rounded-lg" placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} />
+          <select className="px-3 py-2 bg-[var(--app-card-bg)] border border-[var(--app-card-border)] rounded-lg" value={category} onChange={(e) => setCategory(e.target.value)}>
+            <option value="reflection">Reflection</option>
+            <option value="quote">Quote</option>
+            <option value="meeting">Meeting</option>
+            <option value="song">Song</option>
+            <option value="bible">Bible</option>
+            <option value="general">General</option>
+          </select>
+        </div>
+        <textarea className="w-full min-h-24 px-3 py-2 bg-[var(--app-card-bg)] border border-[var(--app-card-border)] rounded-lg" placeholder="Write here..." value={content} onChange={(e) => setContent(e.target.value)} />
+        <div>
+          <Button onClick={add} icon={<Icon name="plus" size="sm" />}>Add Note</Button>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-2">
+          {notes.map((n) => (
+            <div key={n.id} className="p-3 rounded-lg border border-[var(--app-card-border)]">
+              <div className="flex items-center justify-between mb-1">
+                <div className="text-sm font-medium">{n.title}</div>
+                <button className="text-[var(--app-foreground-muted)] hover:text-[var(--app-foreground)]" onClick={() => remove(n.id)}>×</button>
+              </div>
+              <div className="text-xs text-[var(--app-foreground-muted)] mb-1">{n.category}</div>
+              <div className="text-sm whitespace-pre-wrap">{n.content}</div>
+            </div>
+          ))}
         </div>
       </div>
     </Card>
