@@ -6,6 +6,9 @@ export type TodoItem = {
     completed: boolean;
     createdAt: number;
     completedAt?: number | null;
+    // Simple prioritization metadata (1-5)
+    impact?: number;
+    urgency?: number;
 };
 
 function getTodosKey(userId: string): string {
@@ -40,6 +43,8 @@ export async function addTodo(userId: string, text: string): Promise<TodoItem> {
         text,
         completed: false,
         createdAt: Date.now(),
+        impact: 3,
+        urgency: 3,
     };
     const next = [...todos, newItem];
     await setTodos(userId, next);
@@ -57,6 +62,17 @@ export async function toggleTodo(
             ? { ...t, completed, completedAt: completed ? Date.now() : null }
             : t,
     );
+    await setTodos(userId, next);
+    return next.find((t) => t.id === id) ?? null;
+}
+
+export async function updateTodoMeta(
+    userId: string,
+    id: string,
+    meta: { impact?: number; urgency?: number },
+): Promise<TodoItem | null> {
+    const todos = await getTodos(userId);
+    const next = todos.map((t) => (t.id === id ? { ...t, ...meta } : t));
     await setTodos(userId, next);
     return next.find((t) => t.id === id) ?? null;
 }
@@ -171,5 +187,20 @@ export async function setTodayFocus(userId: string, todoId: string): Promise<Dai
         memoryFocus.set(userId, value);
     }
     return value;
+}
+
+function scoreTodo(todo: TodoItem): number {
+    const impact = Math.min(Math.max(todo.impact ?? 3, 1), 5);
+    const urgency = Math.min(Math.max(todo.urgency ?? 3, 1), 5);
+    // 80/20-ish weighting: impact is heavier
+    return impact * 2 + urgency * 1.5;
+}
+
+export async function suggestFocus(userId: string): Promise<DailyFocus | null> {
+    const todos = await getTodos(userId);
+    const candidates = todos.filter((t) => !t.completed);
+    if (candidates.length === 0) return null;
+    const best = candidates.sort((a, b) => scoreTodo(b) - scoreTodo(a))[0];
+    return { date: todayYmd(), todoId: best.id };
 }
 
