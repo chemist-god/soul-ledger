@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useCallback, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react";
 import { useAccount } from "wagmi";
 import {
   Transaction,
@@ -280,38 +280,50 @@ export function Icon({ name, size = "md", className = "" }: IconProps) {
 }
 
 type Todo = {
-  id: number;
+  id: string;
   text: string;
   completed: boolean;
 }
 
 function TodoList() {
-  const [todos, setTodos] = useState<Todo[]>([
-    { id: 1, text: "Learn about MiniKit", completed: false },
-    { id: 2, text: "Build a Mini App", completed: true },
-    { id: 3, text: "Deploy to Base and go viral", completed: false },
-  ]);
+  const [todos, setTodos] = useState<Todo[]>([]);
   const [newTodo, setNewTodo] = useState("");
 
-  const addTodo = () => {
+  const refresh = useCallback(async () => {
+    const res = await fetch("/api/todos", { headers: { "x-user-id": "demo-user" } });
+    const json = await res.json();
+    setTodos(json.todos ?? []);
+  }, []);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  const addTodo = async () => {
     if (newTodo.trim() === "") return;
-
-    const newId =
-      todos.length > 0 ? Math.max(...todos.map((t) => t.id)) + 1 : 1;
-    setTodos([...todos, { id: newId, text: newTodo, completed: false }]);
+    await fetch("/api/todos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-user-id": "demo-user" },
+      body: JSON.stringify({ text: newTodo }),
+    });
     setNewTodo("");
+    refresh();
   };
 
-  const toggleTodo = (id: number) => {
-    setTodos(
-      todos.map((todo) =>
-        todo.id === id ? { ...todo, completed: !todo.completed } : todo,
-      ),
-    );
+  const toggleTodo = async (id: string) => {
+    const item = todos.find((t) => t.id === id);
+    if (!item) return;
+    await fetch("/api/todos", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", "x-user-id": "demo-user" },
+      body: JSON.stringify({ id: item.id, completed: !item.completed }),
+    });
+    refresh();
   };
 
-  const deleteTodo = (id: number) => {
-    setTodos(todos.filter((todo) => todo.id !== id));
+  const deleteTodo = async (id: string) => {
+    await fetch(`/api/todos?id=${id}`, { method: "DELETE", headers: { "x-user-id": "demo-user" } });
+    refresh();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -323,6 +335,8 @@ function TodoList() {
   return (
     <Card title="Get started">
       <div className="space-y-4">
+        <ClaimCard />
+        <FocusCard />
         <div className="flex items-center space-x-2">
           <input
             type="text"
@@ -350,11 +364,10 @@ function TodoList() {
                   type="button"
                   id={`todo-${todo.id}`}
                   onClick={() => toggleTodo(todo.id)}
-                  className={`w-5 h-5 rounded-full border flex items-center justify-center ${
-                    todo.completed
-                      ? "bg-[var(--app-accent)] border-[var(--app-accent)]"
-                      : "border-[var(--app-foreground-muted)] bg-transparent"
-                  }`}
+                  className={`w-5 h-5 rounded-full border flex items-center justify-center ${todo.completed
+                    ? "bg-[var(--app-accent)] border-[var(--app-accent)]"
+                    : "border-[var(--app-foreground-muted)] bg-transparent"
+                    }`}
                 >
                   {todo.completed && (
                     <Icon
@@ -393,12 +406,12 @@ function TransactionCard() {
   // Example transaction call - sending 0 ETH to self
   const calls = useMemo(() => address
     ? [
-        {
-          to: address,
-          data: "0x" as `0x${string}`,
-          value: BigInt(0),
-        },
-      ]
+      {
+        to: address,
+        data: "0x" as `0x${string}`,
+        value: BigInt(0),
+      },
+    ]
     : [], [address]);
 
   const sendNotification = useNotification();
@@ -458,5 +471,98 @@ function TransactionCard() {
         </div>
       </div>
     </Card>
+  );
+}
+
+function ClaimCard() {
+  const [loading, setLoading] = useState(false);
+  const [canClaim, setCanClaim] = useState(false);
+  const [streak, setStreak] = useState(0);
+  const [points, setPoints] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+
+  const refresh = useCallback(async () => {
+    const res = await fetch("/api/claim", { headers: { "x-user-id": "demo-user" } });
+    const json = await res.json();
+    setCanClaim(Boolean(json.canClaim && json.hasCompletedTaskToday));
+    setStreak(json.state?.streak ?? 0);
+    setPoints(json.state?.points ?? 0);
+  }, []);
+
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
+
+  const handleClaim = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await fetch("/api/claim", { method: "POST", headers: { "x-user-id": "demo-user" } });
+      const json = await res.json();
+      if (!res.ok) {
+        setError(json.error || "Claim failed");
+      }
+    } finally {
+      setLoading(false);
+      refresh();
+    }
+  }, [refresh]);
+
+  return (
+    <div className="flex items-center justify-between p-3 border rounded-lg border-[var(--app-card-border)]">
+      <div className="text-sm text-[var(--app-foreground-muted)]">
+        <div>Daily streak: <span className="text-[var(--app-foreground)] font-medium">{streak}</span></div>
+        <div>Total points: <span className="text-[var(--app-foreground)] font-medium">{points}</span></div>
+        {error && <div className="text-red-500 text-xs mt-1">{error}</div>}
+      </div>
+      <Button disabled={!canClaim || loading} onClick={handleClaim}>
+        {loading ? "Claiming..." : canClaim ? "Claim Daily" : "Claim Locked"}
+      </Button>
+    </div>
+  );
+}
+
+function FocusCard() {
+  const [todos, setTodos] = useState<Todo[]>([]);
+  const [focusId, setFocusId] = useState<string | null>(null);
+
+  const refresh = useCallback(async () => {
+    const [todoRes, focusRes] = await Promise.all([
+      fetch("/api/todos", { headers: { "x-user-id": "demo-user" } }),
+      fetch("/api/focus", { headers: { "x-user-id": "demo-user" } }),
+    ]);
+    const todoJson = await todoRes.json();
+    const focusJson = await focusRes.json();
+    setTodos(todoJson.todos ?? []);
+    setFocusId(focusJson.focus?.todoId ?? null);
+  }, []);
+
+  useEffect(() => { refresh(); }, [refresh]);
+
+  const setFocus = useCallback(async (id: string) => {
+    await fetch("/api/focus", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-user-id": "demo-user" },
+      body: JSON.stringify({ todoId: id }),
+    });
+    refresh();
+  }, [refresh]);
+
+  if (todos.length === 0) return null;
+
+  return (
+    <div className="p-3 border rounded-lg border-[var(--app-card-border)]">
+      <div className="text-sm font-medium mb-2">One Big Thing (today)</div>
+      <div className="space-y-2">
+        {todos.map((t) => (
+          <div key={t.id} className="flex items-center justify-between">
+            <div className={`text-sm ${focusId === t.id ? "font-semibold" : ""}`}>{t.text}</div>
+            <Button variant={focusId === t.id ? "secondary" : "outline"} size="sm" onClick={() => setFocus(t.id)}>
+              {focusId === t.id ? "Focused" : "Set Focus"}
+            </Button>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }

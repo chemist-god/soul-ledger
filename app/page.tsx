@@ -20,6 +20,7 @@ import {
 } from "@coinbase/onchainkit/wallet";
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { Button } from "./components/DemoComponents";
+import { useAccount } from "wagmi";
 import { Icon } from "./components/DemoComponents";
 import { Home } from "./components/DemoComponents";
 import { Features } from "./components/DemoComponents";
@@ -28,6 +29,7 @@ export default function App() {
   const { setFrameReady, isFrameReady, context } = useMiniKit();
   const [frameAdded, setFrameAdded] = useState(false);
   const [activeTab, setActiveTab] = useState("home");
+  const { address } = useAccount();
 
   const addFrame = useAddFrame();
   const openUrl = useOpenUrl();
@@ -69,6 +71,18 @@ export default function App() {
 
     return null;
   }, [context, frameAdded, handleAddFrame]);
+
+  // Inject wallet address into fetch headers globally (basic MVP)
+  useEffect(() => {
+    if (!address) return;
+    const originalFetch = window.fetch;
+    window.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
+      const headers = new Headers(init?.headers || {});
+      if (!headers.has("x-user-id")) headers.set("x-user-id", address);
+      return originalFetch(input, { ...init, headers });
+    };
+    return () => { window.fetch = originalFetch; };
+  }, [address]);
 
   return (
     <div className="flex flex-col min-h-screen font-sans text-[var(--app-foreground)] mini-app-theme from-[var(--app-background)] to-[var(--app-gray)]">
