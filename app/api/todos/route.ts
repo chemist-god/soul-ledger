@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { addTodo, deleteTodo, getTodos, toggleTodo } from "@/lib/todo";
+import { addTodo, deleteTodo, getTodos, toggleTodo, updateTodoMeta } from "@/lib/todo";
 
 function getUserId(headers: Headers): string {
     // For MVP, use wallet address or fid passed as header; fallback to demo id
@@ -26,11 +26,17 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
     const userId = getUserId(request.headers);
     const body = await request.json();
-    const { id, completed } = body ?? {};
-    if (!id || typeof completed !== "boolean") {
+    const { id, completed, impact, urgency } = body ?? {};
+    if (!id) {
         return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
     }
-    const updated = await toggleTodo(userId, id, completed);
+    let updated = null;
+    if (typeof completed === "boolean") {
+        updated = await toggleTodo(userId, id, completed);
+    }
+    if (typeof impact === "number" || typeof urgency === "number") {
+        updated = await updateTodoMeta(userId, id, { impact, urgency });
+    }
     return NextResponse.json({ todo: updated });
 }
 

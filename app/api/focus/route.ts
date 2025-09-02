@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getTodayFocus, setTodayFocus, getTodos } from "@/lib/todo";
+import { getTodayFocus, setTodayFocus, getTodos, suggestFocus } from "@/lib/todo";
 
 function getUserId(headers: Headers): string {
     return headers.get("x-user-id") ?? "demo-user";
@@ -7,9 +7,14 @@ function getUserId(headers: Headers): string {
 
 export async function GET(request: Request) {
     const userId = getUserId(request.headers);
-    const [focus, todos] = await Promise.all([getTodayFocus(userId), getTodos(userId)]);
+    const [focus, todos, suggestion] = await Promise.all([
+        getTodayFocus(userId),
+        getTodos(userId),
+        suggestFocus(userId),
+    ]);
     const focused = focus ? todos.find((t) => t.id === focus.todoId) ?? null : null;
-    return NextResponse.json({ focus, focusedTodo: focused });
+    const suggestedTodo = suggestion ? todos.find((t) => t.id === suggestion.todoId) ?? null : null;
+    return NextResponse.json({ focus, focusedTodo: focused, suggestion, suggestedTodo });
 }
 
 export async function POST(request: Request) {
