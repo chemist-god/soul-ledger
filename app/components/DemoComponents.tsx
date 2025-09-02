@@ -396,7 +396,6 @@ function TodoList() {
 
 function TransactionCard() {
   const { address } = useAccount();
-
   // Example transaction call - sending 0 ETH to self
   const calls = useMemo(() => address
     ? [
@@ -570,14 +569,25 @@ function FocusCard() {
 }
 
 function StakeCard() {
-  const { address, isConnected } = useAccount();
+  const { isConnected } = useAccount();
   const [amount, setAmount] = useState("20");
   const [days, setDays] = useState(7);
   const [beneficiary, setBeneficiary] = useState("0x5B9AFe590174Cddd1C99374DEC490A87f4D04776");
   const [startDate, setStartDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
   const [challengeId, setChallengeId] = useState<bigint | null>(null);
   const [busy, setBusy] = useState(false);
-  const [challengeData, setChallengeData] = useState<any>(null);
+  type ChallengeData = {
+    user: string;
+    beneficiary: string;
+    principal: bigint;
+    released: bigint;
+    penalized: bigint;
+    startTime: bigint;
+    durationDays: bigint;
+    dailySlice: bigint;
+    finalized: boolean;
+  } | null;
+  const [challengeData, setChallengeData] = useState<ChallengeData>(null);
   const [error, setError] = useState<string | null>(null);
 
   const refreshChallengeData = useCallback(async () => {
@@ -603,8 +613,8 @@ function StakeCard() {
       setBusy(true);
       setError(null);
       const date = new Date(startDate + "T00:00:00Z");
-      const txHash = await createStakingChallenge({
-        beneficiary: beneficiary as any,
+      await createStakingChallenge({
+        beneficiary: beneficiary as `0x${string}`,
         amount,
         startDate: date,
         days
@@ -613,8 +623,12 @@ function StakeCard() {
       // In production, you'd parse the tx receipt to get the actual challenge ID
       setChallengeId(BigInt(Date.now()));
       setError(null);
-    } catch (e: any) {
-      setError(e.message || "Failed to create challenge");
+    } catch (e) {
+      if (e instanceof Error) {
+        setError(e.message || "Failed to create challenge");
+      } else {
+        setError("Failed to create challenge");
+      }
     } finally {
       setBusy(false);
     }
@@ -627,8 +641,12 @@ function StakeCard() {
       setError(null);
       await claimStake(challengeId);
       await refreshChallengeData();
-    } catch (e: any) {
-      setError(e.message || "Failed to claim");
+    } catch (e) {
+      if (e instanceof Error) {
+        setError(e.message || "Failed to claim");
+      } else {
+        setError("Failed to claim");
+      }
     } finally {
       setBusy(false);
     }
@@ -641,8 +659,12 @@ function StakeCard() {
       setError(null);
       await finalizeChallenge(challengeId);
       await refreshChallengeData();
-    } catch (e: any) {
-      setError(e.message || "Failed to finalize");
+    } catch (e) {
+      if (e instanceof Error) {
+        setError(e.message || "Failed to finalize");
+      } else {
+        setError("Failed to finalize");
+      }
     } finally {
       setBusy(false);
     }

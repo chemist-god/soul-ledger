@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { baseSepolia } from "viem/chains";
-import { Address, createWalletClient, http } from "viem";
+// ...existing code...
 
 // Simulated verifier that would call the onchain attestCompletion via a relayer or contract method.
 // For MVP, this endpoint just echoes success to unblock the UI. Replace with a real relayer later.
@@ -14,7 +13,7 @@ export async function POST(request: Request) {
         }
         // TODO: integrate a relayer or server signer to submit attestCompletion
         return NextResponse.json({ ok: true });
-    } catch (e) {
+    } catch {
         return NextResponse.json({ error: "Server error" }, { status: 500 });
     }
 }
