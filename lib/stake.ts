@@ -1,5 +1,5 @@
 import { getPublicClient, getWalletClient } from "wagmi/actions";
-import { baseSepolia } from "wagmi/chains";
+// ...existing code...
 import { Address, parseUnits, formatUnits } from "viem";
 import { config } from "@/app/providers";
 
