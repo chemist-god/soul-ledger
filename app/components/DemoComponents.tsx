@@ -40,23 +40,23 @@ export function Button({
   icon,
 }: ButtonProps) {
   const baseClasses =
-    "inline-flex items-center justify-center font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--app-accent)] disabled:opacity-50 disabled:pointer-events-none shadow-lg backdrop-blur-md";
+    "inline-flex items-center justify-center font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--app-accent)] disabled:opacity-50 disabled:pointer-events-none shadow-md backdrop-blur-md font-sans tracking-wide";
 
   const variantClasses = {
     primary:
-      "bg-gradient-to-r from-[#0052FF] via-[#00C6FF] to-[#0052FF] text-white border border-transparent hover:shadow-[0_0_16px_2px_#00C6FF] hover:scale-[1.03]",
+      "bg-gradient-to-r from-[#0052FF] via-[#00C6FF] to-[#0052FF] text-white border border-transparent hover:shadow-[0_0_16px_2px_#00C6FF] hover:scale-[1.04]",
     secondary:
-      "bg-[var(--app-gray)] bg-opacity-80 text-[var(--app-foreground)] border border-[var(--app-accent)] hover:bg-[var(--app-accent-light)] hover:shadow-[0_0_12px_1px_#0052FF] hover:scale-[1.03]",
+      "bg-[var(--app-gray)] bg-opacity-80 text-[var(--app-foreground)] border border-[var(--app-accent)] hover:bg-[var(--app-accent-light)] hover:shadow-[0_0_12px_1px_#0052FF] hover:scale-[1.04]",
     outline:
-      "border border-[var(--app-accent)] bg-gradient-to-r from-[#232a3a] to-[#1a1f2b] text-[var(--app-accent)] hover:bg-[var(--app-accent-light)] hover:shadow-[0_0_12px_1px_#00C6FF] hover:scale-[1.03]",
+      "border border-[var(--app-accent)] bg-gradient-to-r from-[#232a3a] to-[#1a1f2b] text-[var(--app-accent)] hover:bg-[var(--app-accent-light)] hover:shadow-[0_0_12px_1px_#00C6FF] hover:scale-[1.04]",
     ghost:
-      "bg-transparent text-[var(--app-foreground-muted)] hover:bg-[var(--app-accent-light)] hover:text-[var(--app-accent)] hover:scale-[1.03]",
+      "bg-transparent text-[var(--app-foreground-muted)] hover:bg-[var(--app-accent-light)] hover:text-[var(--app-accent)] hover:scale-[1.04]",
   };
 
   const sizeClasses = {
-    sm: "text-xs px-3 py-1.5 rounded-xl",
-    md: "text-sm px-5 py-2 rounded-2xl",
-    lg: "text-base px-7 py-3 rounded-2xl",
+    sm: "text-xs px-4 py-2 rounded-xl",
+    md: "text-sm px-6 py-2.5 rounded-2xl",
+    lg: "text-base px-8 py-3 rounded-2xl",
   };
 
   return (
@@ -95,20 +95,20 @@ function Card({
 
   return (
     <div
-      className={`bg-gradient-to-br from-[#232a3a] via-[#1a1f2b] to-[#232a3a] glass-card rounded-3xl border border-[var(--app-accent)] shadow-[0_8px_32px_0_rgba(0,198,255,0.12)] backdrop-blur-xl overflow-hidden transition-all duration-300 hover:shadow-[0_0_32px_4px_#00C6FF] hover:-translate-y-[2px] ${className} ${onClick ? "cursor-pointer" : ""}`}
+      className={`bg-gradient-to-br from-[#232a3a] via-[#1a1f2b] to-[#232a3a] rounded-3xl border border-[var(--app-accent)] shadow-lg backdrop-blur-xl overflow-hidden transition-all duration-300 hover:shadow-[0_0_32px_4px_#00C6FF] hover:-translate-y-[2px] ${className} ${onClick ? "cursor-pointer" : ""}`}
       onClick={onClick}
       onKeyDown={onClick ? handleKeyDown : undefined}
       tabIndex={onClick ? 0 : undefined}
       role={onClick ? "button" : undefined}
     >
       {title && (
-        <div className="px-7 py-4 border-b border-[var(--app-accent)] bg-gradient-to-r from-[#0052FF22] to-[#00C6FF11]">
-          <h3 className="text-xl font-semibold text-[var(--app-foreground)] tracking-wide drop-shadow-glow">
+        <div className="px-8 py-5 border-b border-[var(--app-accent)] bg-gradient-to-r from-[#0052FF22] to-[#00C6FF11]">
+          <h3 className="text-2xl font-semibold text-[var(--app-foreground)] tracking-wide drop-shadow-glow font-sans">
             {title}
           </h3>
         </div>
       )}
-      <div className="p-7">{children}</div>
+      <div className="p-8 space-y-4 font-sans">{children}</div>
     </div>
   );
 }
@@ -832,44 +832,44 @@ function DashboardCard({ onExplore }: { onExplore: () => void }) {
 
   return (
     <Card>
-      <div className="space-y-6 animate-fade-in">
-        <div className="flex items-center justify-between">
-          <div className="text-2xl font-extrabold tracking-wide bg-gradient-to-r from-[#00C6FF] to-[#0052FF] bg-clip-text text-transparent drop-shadow-glow">SoulLedger</div>
-          <Button variant="ghost" size="md" onClick={onExplore}>
-            <Icon name="arrow-right" size="sm" className="mr-1" /> Explore
-          </Button>
-        </div>
+      <nav className="flex items-center justify-between px-2 py-2 mb-2">
+        <div className="text-3xl font-extrabold tracking-wide bg-gradient-to-r from-[#00C6FF] to-[#0052FF] bg-clip-text text-transparent drop-shadow-glow font-sans">SoulLedger</div>
+        <Button variant="ghost" size="md" onClick={onExplore}>
+          <Icon name="arrow-right" size="sm" className="mr-1" /> Explore
+        </Button>
+      </nav>
+      <div className="space-y-7 animate-fade-in font-sans">
         <div className="text-base text-[var(--app-foreground-muted)] flex items-center gap-2">
           <span className="font-bold text-[var(--app-accent)] text-lg animate-pulse">{streak}-day streak</span> <span>🎯</span>
         </div>
-        <div className="grid grid-cols-3 gap-4 text-center">
-          <div className="p-4 rounded-2xl bg-gradient-to-br from-[#0052FF22] to-[#00C6FF11] border border-[var(--app-accent)] shadow-md">
+        <div className="grid grid-cols-3 gap-5 text-center">
+          <div className="p-5 rounded-2xl bg-gradient-to-br from-[#0052FF22] to-[#00C6FF11] border border-[var(--app-accent)] shadow-md">
             <div className="text-xs text-[var(--app-foreground-muted)]">Tasks</div>
             <div className="text-lg font-bold tracking-wide text-[var(--app-accent)]">{tasksDone} / {tasksTotal}</div>
           </div>
-          <div className="p-4 rounded-2xl bg-gradient-to-br from-[#0052FF22] to-[#00C6FF11] border border-[var(--app-accent)] shadow-md">
+          <div className="p-5 rounded-2xl bg-gradient-to-br from-[#0052FF22] to-[#00C6FF11] border border-[var(--app-accent)] shadow-md">
             <div className="text-xs text-[var(--app-foreground-muted)]">Reflections</div>
             <div className="text-lg font-bold tracking-wide text-[#00C6FF]">1</div>
           </div>
-          <div className="p-4 rounded-2xl bg-gradient-to-br from-[#0052FF22] to-[#00C6FF11] border border-[var(--app-accent)] shadow-md">
+          <div className="p-5 rounded-2xl bg-gradient-to-br from-[#0052FF22] to-[#00C6FF11] border border-[var(--app-accent)] shadow-md">
             <div className="text-xs text-[var(--app-foreground-muted)]">Songs</div>
             <div className="text-lg font-bold tracking-wide text-[#0052FF]">1</div>
           </div>
         </div>
         {highlight && (
-          <div className="p-4 rounded-2xl bg-gradient-to-r from-[#00C6FF22] to-[#0052FF11] border border-[var(--app-accent)] shadow-md animate-fade-in">
+          <div className="p-5 rounded-2xl bg-gradient-to-r from-[#00C6FF22] to-[#0052FF11] border border-[var(--app-accent)] shadow-md animate-fade-in">
             <div className="text-xs text-[var(--app-foreground-muted)] mb-1">High-Impact Task (80/20)</div>
             <div className="text-base font-bold text-[var(--app-accent)]">{highlight}</div>
           </div>
         )}
-        <div>
+        <section>
           <div className="text-base font-bold mb-2 text-[var(--app-accent)]">Recent Notes</div>
           <ul className="text-sm text-[var(--app-foreground-muted)] space-y-2">
             {recentNotes.map((n, i) => (
               <li key={i} className="pl-2 border-l-4 border-[var(--app-accent)] bg-gradient-to-r from-[#0052FF11] to-transparent">» {n}</li>
             ))}
           </ul>
-        </div>
+        </section>
       </div>
     </Card>
   );
