@@ -1,5 +1,5 @@
 import { getPublicClient, getWalletClient } from "wagmi/actions";
-// ...existing code...
+import { baseSepolia } from "wagmi/chains";
 import { Address, parseUnits, formatUnits } from "viem";
 import { config } from "@/app/providers";
 
@@ -50,6 +50,7 @@ export async function createChallenge(params: { beneficiary: Address; amount: st
         abi: ERC20_ABI,
         functionName: "approve",
         args: [STAKE_VAULT_ADDRESS, amount],
+        chain: baseSepolia,
     });
 
     // Create challenge
@@ -59,6 +60,7 @@ export async function createChallenge(params: { beneficiary: Address; amount: st
         abi: STAKE_VAULT_ABI,
         functionName: "createChallenge",
         args: [params.beneficiary, amount, startTime, BigInt(params.days)],
+        chain: baseSepolia,
     });
     return id;
 }
@@ -71,6 +73,7 @@ export async function claimUnlocked(id: bigint) {
         abi: STAKE_VAULT_ABI,
         functionName: "claimUnlocked",
         args: [id],
+        chain: baseSepolia,
     });
 }
 
@@ -82,6 +85,7 @@ export async function finalizeChallenge(id: bigint) {
         abi: STAKE_VAULT_ABI,
         functionName: "finalize",
         args: [id],
+        chain: baseSepolia,
     });
 }
 
@@ -94,6 +98,7 @@ export async function getChallengeData(id: bigint) {
         abi: STAKE_VAULT_ABI,
         functionName: "getChallenge",
         args: [id],
+        chain: baseSepolia,
     });
 
     return {
@@ -118,6 +123,7 @@ export async function checkDayUnlocked(id: bigint, dayIndex: number) {
         abi: STAKE_VAULT_ABI,
         functionName: "isDayUnlocked",
         args: [id, BigInt(dayIndex)],
+        chain: baseSepolia,
     });
 }
 
